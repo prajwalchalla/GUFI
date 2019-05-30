@@ -143,7 +143,7 @@ int tsumit (struct sum *sumin,struct sum *smout);
 //
 int mkpath(char* path, mode_t mode);
 
-int dupdir(char* path, struct stat * stat);
+int dupdir(char* path, struct stat * st);
 
 int incrthread();
 

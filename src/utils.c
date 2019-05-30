@@ -460,22 +460,30 @@ int mkpath(char* path, mode_t mode) {
   return mkdir(path,mode);
 }
 
-int dupdir(char * path, struct stat * stat)
+#include <sys/stat.h>
+#include <sys/types.h>
+
+int dupdir(char * path, struct stat * st)
 {
     //printf("mkdir %s\n",path);
     // the writer must be able to create the index files into this directory so or in S_IWRITE
     //rc = mkdir(path,pwork->statuso.st_mode | S_IWRITE);
-    if (mkdir(path,stat->st_mode) != 0) {
+    if (mkdir(path,st->st_mode) != 0) {
       //perror("mkdir");
       if (errno == ENOENT) {
         //printf("calling mkpath on %s\n",path);
-        mkpath(path, stat->st_mode);
+        mkpath(path, st->st_mode);
       } else if (errno != EEXIST) {
         return 1;
       }
     }
-    chmod(path, stat->st_mode);
-    chown(path, stat->st_uid, stat->st_gid);
+    chmod(path, st->st_mode);
+    chown(path, st->st_uid, st->st_gid);
+
+    struct stat st2;
+    stat(path, &st2);
+    printf("%d %d\n", st->st_gid, st2.st_gid);
+
     // we dont need to set xattrs/time on the gufi directory those are in the db
     // the gufi directory structure is there only to walk, not to provide
     // information, the information is in the db
