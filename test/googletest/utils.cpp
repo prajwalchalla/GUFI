@@ -449,8 +449,6 @@ TEST(dupdir, childfirst) {
     orig_child_stat.st_uid = geteuid();
     orig_child_stat.st_gid = getegid();
 
-    std::cout << geteuid() << " " << getegid() << std::endl;
-
     // remove leftover directories
     rmdir(child);
     rmdir(parent);

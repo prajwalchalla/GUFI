@@ -460,9 +460,6 @@ int mkpath(char* path, mode_t mode) {
   return mkdir(path,mode);
 }
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
 int dupdir(char * path, struct stat * st)
 {
     //printf("mkdir %s\n",path);
@@ -477,8 +474,14 @@ int dupdir(char * path, struct stat * st)
         return 1;
       }
     }
-    chmod(path, st->st_mode);
-    chown(path, st->st_uid, st->st_gid);
+
+    if (chmod(path, st->st_mode)) {
+        printf("chmod %d\n", errno);
+    }
+
+    if (chown(path, st->st_uid, st->st_gid)) {
+        printf("chown %d\n", errno);
+    }
 
     struct stat st2;
     stat("/tmp/parent", &st2);
