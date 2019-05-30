@@ -446,14 +446,18 @@ int mkpath(char* path, mode_t mode) {
   for (char* p=strchr(path+1, '/'); p; p=strchr(p+1, '/')) {
     //printf("mkpath mkdir file_path %s p %s\n", file_path,p);
     *p='\0';
-    printf("mkpath %s %d\n", path, mode);
     //if (mkdir(file_path, mode)==-1) {
     if (mkdir(path, mode)==-1) {
+      printf("mkdir error\n");
       if (errno!=EEXIST) {
          *p='/';
          return -1;
       }
     }
+    struct stat st;
+    stat(path, &st);
+    printf("mkpath %s %d\n", path, st.st_gid);
+
     *p='/';
   }
   //printf("mkpath mkdir sp %s\n",sp);
