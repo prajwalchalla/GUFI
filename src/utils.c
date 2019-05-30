@@ -481,8 +481,8 @@ int dupdir(char * path, struct stat * st)
     chown(path, st->st_uid, st->st_gid);
 
     struct stat st2;
-    stat(path, &st2);
-    printf("%d %d\n", st->st_gid, st2.st_gid);
+    stat("/tmp/parent", &st2);
+    printf("parent %d %d\n", st->st_gid, st2.st_gid);
 
     // we dont need to set xattrs/time on the gufi directory those are in the db
     // the gufi directory structure is there only to walk, not to provide
