@@ -76,7 +76,7 @@ matrix:
                   packages:
                       - cmake
                       - llvm@7
-                      - mysql
+                      # - mysql
                       - pcre
                       - truncate
                   update: true
@@ -97,7 +97,7 @@ matrix:
                   packages:
                       - cmake
                       - llvm@7
-                      - mysql
+                      # - mysql
                       - pcre
                       - truncate
                   update: true
