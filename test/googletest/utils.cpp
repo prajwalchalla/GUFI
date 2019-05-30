@@ -436,7 +436,7 @@ TEST(dupdir, parentfirst) {
     EXPECT_EQ(orig_child_stat.st_gid,             child_stat.st_gid);
 }
 
-TEST(dupdir, childtfirst) {
+TEST(dupdir, childfirst) {
     char parent[] = "/tmp/parent";
     struct stat orig_parent_stat;
     orig_parent_stat.st_mode = S_IRWXU; // 700
@@ -448,6 +448,8 @@ TEST(dupdir, childtfirst) {
     orig_child_stat.st_mode = S_IRWXU | S_IRWXG | S_IRWXO; // 777
     orig_child_stat.st_uid = geteuid();
     orig_child_stat.st_gid = getegid();
+
+    std::cout << geteuid() << " " << getegid() << std::endl;
 
     // remove leftover directories
     rmdir(child);
