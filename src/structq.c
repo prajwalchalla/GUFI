@@ -84,7 +84,7 @@ OF SUCH DAMAGE.
 
 struct Node
 {
-        struct work swork;
+        struct work *swork;
         struct Node* next;
 }*rear, *front;
 
@@ -123,8 +123,8 @@ void pushn(struct work *twork)
      struct Node *temp;
      temp=(struct Node *)malloc(sizeof(struct Node));
      qent++;
-     memcpy(&temp->swork,twork,sizeof(struct work));
-     temp->swork.freeme=temp;
+     temp->swork = twork;
+     temp->swork->freeme=temp;
      if (front == NULL)
      {
            front=temp;
@@ -146,11 +146,10 @@ void pushn(struct work *twork)
 // returns the to-be-queued copy of <twork>
 struct work* pushn2_part1(struct work *twork)
 {
-     struct Node *temp;
-     temp=(struct Node *)malloc(sizeof(struct Node));
-     memcpy(&temp->swork,twork,sizeof(struct work));
-     temp->swork.freeme=temp;
-     return &temp->swork;
+     struct Node *temp = malloc(sizeof(struct Node));
+     temp->swork = twork;
+     temp->swork->freeme=temp;
+     return twork;
 }
 
 // caller needs a lock for this part.
@@ -182,13 +181,13 @@ void display()
            printf("\nElements are as:  ");
            while(var!=NULL)
            {
-                printf("\t%s",var->swork.name);
+                printf("\t%s",var->swork->name);
                 var=var->next;
            }
-     printf("\n");
+           printf("\n");
      }
      else
-     printf("\ndisplayQueue is Empty");
+         printf("\ndisplayQueue is Empty");
 }
 
 void displaycurrent()
@@ -196,7 +195,7 @@ void displaycurrent()
      struct Node *var=rear;
      if(var!=NULL)
      {
-        printf("current: \t%s",var->swork.name);
+        printf("current: \t%s",var->swork->name);
         printf("\n");
      }
      else
@@ -215,10 +214,11 @@ int addrqent()
 
 struct work * addrcurrents()
 {
-     struct Node *var=rear;
-     if(var!=NULL)
-           return &var->swork;
-     else
-        printf("\naddrcurrentsQueue is Empty");
+     struct Node *var = rear;
+     if(var) {
+         return var->swork;
+     }
+
+     printf("\naddrcurrentsQueue is Empty");
      return NULL;
 }

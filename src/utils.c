@@ -96,7 +96,6 @@ threadpool mythpool;
 volatile int runningthreads = 0;
 pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-volatile int queuelock = 0;
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 volatile int sumlock = 0;
@@ -587,7 +586,7 @@ int processdirs(DirFunc dir_fn) {
             // this takes this entry off the queue but does NOT free the
             // buffer, that has to be done in dir_fn(), something like:
             // "free(((struct work*)workp)->freeme)"
-            thpool_add_work(mythpool, dir_fn, (void *)workp);
+            thpool_add_work(mythpool, dir_fn, workp);
             thread_count++;
           }
           pthread_mutex_unlock(&queue_mutex);
@@ -605,55 +604,55 @@ static long double elapsed(const struct timespec *start, const struct timespec *
     return e - s;
 }
 
-int processdirs2(DirFunc dir_fn, long double *acquire_mutex_time, long double * work_time) {
+/* int processdirs2(DirFunc dir_fn, long double *acquire_mutex_time, long double * work_time) { */
 
-     struct work * workp;
-     int thread_count = 0;
+/*      struct work * workp; */
+/*      int thread_count = 0; */
 
-     // loop over queue entries and running threads and do all work until
-     // running threads zero and queue empty
-     while (1) {
-        if (runningthreads == 0) {
-          if (getqent() == 0) {
-            break;
-          }
-        }
-        if (runningthreads < in.maxthreads) {
-          // we have to lock around all queue ops
-    struct timespec acquire_mutex_start;
-    clock_gettime(CLOCK_MONOTONIC, &acquire_mutex_start);
-          pthread_mutex_lock(&queue_mutex);
-    struct timespec acquire_mutex_end;
-    clock_gettime(CLOCK_MONOTONIC, &acquire_mutex_end);
-    *acquire_mutex_time += elapsed(&acquire_mutex_start, &acquire_mutex_end);
+/*      // loop over queue entries and running threads and do all work until */
+/*      // running threads zero and queue empty */
+/*      while (1) { */
+/*         if (runningthreads == 0) { */
+/*           if (getqent() == 0) { */
+/*             break; */
+/*           } */
+/*         } */
+/*         if (runningthreads < in.maxthreads) { */
+/*           // we have to lock around all queue ops */
+/*     struct timespec acquire_mutex_start; */
+/*     clock_gettime(CLOCK_MONOTONIC, &acquire_mutex_start); */
+/*           pthread_mutex_lock(&queue_mutex); */
+/*     struct timespec acquire_mutex_end; */
+/*     clock_gettime(CLOCK_MONOTONIC, &acquire_mutex_end); */
+/*     *acquire_mutex_time += elapsed(&acquire_mutex_start, &acquire_mutex_end); */
 
-    struct timespec work_start;
-    clock_gettime(CLOCK_MONOTONIC, &work_start);
+/*     struct timespec work_start; */
+/*     clock_gettime(CLOCK_MONOTONIC, &work_start); */
 
-          if (addrqent() > 0) {
-            workp=addrcurrents();
-            incrthread();
-            delQueuenofree();
+/*           if (addrqent() > 0) { */
+/*             workp=addrcurrents(); */
+/*             incrthread(); */
+/*             delQueuenofree(); */
 
-            // this takes this entry off the queue but does NOT free the
-            // buffer, that has to be done in dir_fn(), something like:
-            // "free(((struct work*)workp)->freeme)"
-            thpool_add_work(mythpool, dir_fn, (void *)workp);
-            thread_count++;
-          }
+/*             // this takes this entry off the queue but does NOT free the */
+/*             // buffer, that has to be done in dir_fn(), something like: */
+/*             // "free(((struct work*)workp)->freeme)" */
+/*             thpool_add_work(mythpool, dir_fn, (void *)workp); */
+/*             thread_count++; */
+/*           } */
 
-    struct timespec work_end;
-    clock_gettime(CLOCK_MONOTONIC, &work_end);
-    *work_time += elapsed(&work_start, &work_end);
+/*     struct timespec work_end; */
+/*     clock_gettime(CLOCK_MONOTONIC, &work_end); */
+/*     *work_time += elapsed(&work_start, &work_end); */
 
 
 
-          pthread_mutex_unlock(&queue_mutex);
-        }
-     }
+/*           pthread_mutex_unlock(&queue_mutex); */
+/*         } */
+/*      } */
 
-     return thread_count;
-}
+/*      return thread_count; */
+/* } */
 
 int printit(const char *name, const struct stat *status, char *type, char *linkname, int xattrs, char * xattr,int printing, long long pinode) {
   if (!printing) return 0;

@@ -135,12 +135,187 @@ long double total_closedir_time = 0;
 pthread_mutex_t total_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
+struct Queue {
+    pthread_mutex_t mutex;
+    int count;
+    struct work * head;
+    struct work * tail;
+};
+/* struct Queue * queues = NULL; */
+struct Queue queue;
+
+volatile int runningthreads2 = 0;
+pthread_mutex_t running_mutex2 = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t queue_mutex2 = PTHREAD_MUTEX_INITIALIZER;
+
+int incrthread2() {
+  pthread_mutex_lock(&running_mutex2);
+  runningthreads2++;
+  pthread_mutex_unlock(&running_mutex2);
+  return 0;
+}
+
+int decrthread2() {
+  pthread_mutex_lock(&running_mutex2);
+  runningthreads2--;
+  pthread_mutex_unlock(&running_mutex2);
+  return 0;
+}
+
+int getqent2() {
+    /* int mylqent = 0; */
+    pthread_mutex_lock(&queue_mutex2);
+    for(int i = 0; i < in.maxthreads; i++) {
+        /* pthread_mutex_lock(&queues[i].mutex); */
+        if (queue/*s[i]*/.count) {
+            pthread_mutex_unlock(&queue_mutex2);
+            /* pthread_mutex_unlock(&queues[i].mutex); */
+            return 1;
+        }
+
+        /* mylqent += queues[i].count; */
+        /* pthread_mutex_unlock(&queues[i].mutex); */
+    }
+    pthread_mutex_unlock(&queue_mutex2);
+    /* return mylqent; */
+    return 0;
+}
+
+void pushdir2(const int tid, struct work * work) {
+    /* pthread_mutex_lock(&queue_mutex2); */
+    pthread_mutex_lock(&queue.mutex);
+    if (queue/*s[tid]*/.head) {
+        queue/*s[tid]*/.tail -> next = work;
+    }
+    else {
+        queue/*s[tid]*/.head = work;
+    }
+    queue/*s[tid]*/.tail = work;
+    queue/*s[tid]*/.count++;
+
+    pthread_mutex_unlock(&queue.mutex);
+    /* pthread_mutex_unlock(&queue_mutex2); */
+}
+
+struct work * addrcurrents2()
+{
+    struct work * work = NULL;
+    /* static int last_q = 0; */
+    /* int q = 0; */
+    /* int found = 0; */
+
+    /* pthread_mutex_lock(&queue_mutex2); */
+
+    pthread_mutex_lock(&queue.mutex);
+    /* if (queue.head) { */
+        work = queue.head;
+        queue.head = queue.head->next;
+        queue.count--;
+    /* } */
+
+    /* for(q = last_q; q < in.maxthreads; q++) { */
+    /*     /\* pthread_mutex_lock(&queues[q].mutex); *\/ */
+    /*     if (queue/\*s[q]*\/.head) { */
+    /*         work = queue/\*s[q]*\/.head; */
+    /*         queue/\*s[q]*\/.head = queue/\*s[q]*\/.head->next; */
+    /*         queue/\*s[q]*\/.count--; */
+    /*         /\* pthread_mutex_unlock(&queues[q].mutex); *\/ */
+
+    /*         found = 1; */
+    /*         break; */
+    /*     } */
+    /*     /\* pthread_mutex_unlock(&queues[q].mutex); *\/ */
+    /* } */
+
+    /* if (!found) { */
+    /*     for(q = 0; q < last_q; q++) { */
+    /*         /\* pthread_mutex_lock(&queues[q].mutex); *\/ */
+    /*         if (queue/\*s[q]*\/.head) { */
+    /*             work = queue/\*s[q]*\/.head; */
+    /*             queue/\*s[q]*\/.head = queue/\*s[q]*\/.head->next; */
+    /*             queue/\*s[q]*\/.count--; */
+    /*             /\* pthread_mutex_unlock(&queues[q].mutex); *\/ */
+
+    /*             break; */
+    /*         } */
+    /*         /\* pthread_mutex_unlock(&queues[q].mutex); *\/ */
+    /*     } */
+    /* } */
+
+    pthread_mutex_unlock(&queue.mutex);
+    /* pthread_mutex_unlock(&queue_mutex2); */
+
+    /* last_q = (q + 1) % in.maxthreads; */
+
+    return work;
+}
+/* int addrqent2() */
+/* { */
+/*     return getqent2(); */
+/* } */
+
+int processdirs2(DirFunc dir_fn, long double *acquire_work_time, long double * push_work_time) {
+     int thread_count = 0;
+
+     // loop over queue entries and running threads and do all work until
+     // running threads zero and queue empty
+     while (1) {
+         const int queued = getqent2();
+
+         if (runningthreads2 == 0) {
+             if (queued == 0) {
+                 break;
+             }
+         }
+         if (runningthreads2 < in.maxthreads) {
+             // we have to lock around all queue ops
+             /* struct timespec acquire_mutex_start; */
+             /* clock_gettime(CLOCK_MONOTONIC, &acquire_mutex_start); */
+             /* pthread_mutex_lock(&queue_mutex2); */
+             /* struct timespec acquire_mutex_end; */
+             /* clock_gettime(CLOCK_MONOTONIC, &acquire_mutex_end); */
+             /* *acquire_mutex_time += elapsed(&acquire_mutex_start, &acquire_mutex_end); */
+
+             if (queued > 0) {
+                 struct timespec acquire_work_start;
+                 clock_gettime(CLOCK_MONOTONIC, &acquire_work_start);
+                 struct work * workp = addrcurrents2();
+                 struct timespec acquire_work_end;
+                 clock_gettime(CLOCK_MONOTONIC, &acquire_work_end);
+                 *acquire_work_time += elapsed(&acquire_work_start, &acquire_work_end);
+
+                 incrthread2();
+                 /* delQueuenofree(); */
+                 struct timespec push_work_start;
+                 clock_gettime(CLOCK_MONOTONIC, &push_work_start);
+
+                 // this takes this entry off the queue but does NOT free the
+                 // buffer, that has to be done in dir_fn(), something like:
+                 // "free(((struct work*)workp)->freeme)"
+                 thpool_add_work(mythpool, dir_fn, workp);
+                 struct timespec push_work_end;
+                 clock_gettime(CLOCK_MONOTONIC, &push_work_end);
+                 *push_work_time += elapsed(&push_work_start, &push_work_end);
+
+                 thread_count++;
+             }
+
+             /* pthread_mutex_unlock(&queue_mutex2); */
+         }
+     }
+
+     return thread_count;
+}
+
 // Push the subdirectories in the current directory onto the queue
-static size_t descend2(struct work *passmywork,
-                       DIR * dir,
+static size_t descend2(const int mytid,
+                       struct work *passmywork,
                        const size_t max_level
                        #ifdef DEBUG
+                       , long double *opendir_time
                        , long double *pushdir_time
+                       , long double *closedir_time
                        #endif
     ) {
 
@@ -148,6 +323,19 @@ static size_t descend2(struct work *passmywork,
         fprintf(stderr, "Got NULL work\n");
         return 0;
     }
+
+    // open directory
+    #ifdef DEBUG
+    struct timespec opendir_start;
+    clock_gettime(CLOCK_MONOTONIC, &opendir_start);
+    #endif
+    // keep opendir near opendb to help speed up sqlite3_open_v2
+    DIR * dir = opendir(passmywork->name);
+    #ifdef DEBUG
+    struct timespec opendir_end;
+    clock_gettime(CLOCK_MONOTONIC, &opendir_end);
+    *opendir_time = elapsed(&opendir_start, &opendir_end);
+    #endif
 
     if (!dir) {
         fprintf(stderr, "Could not open %s: %d %s\n", passmywork->name, errno, strerror(errno));
@@ -162,32 +350,31 @@ static size_t descend2(struct work *passmywork,
         // queue, if file or link print it, fill up qwork structure for
         // each
         struct dirent *entry = NULL;
-        while ((entry = (readdir(dir)))) {
+        while ((entry = readdir(dir))) {
             const size_t len = strlen(entry->d_name);
             if (((len == 1) && (strncmp(entry->d_name, ".",  1) == 0)) ||
                 ((len == 2) && (strncmp(entry->d_name, "..", 2) == 0))) {
                 continue;
             }
 
-            struct work qwork;
-            memset(&qwork, 0, sizeof(qwork));
-            SNPRINTF(qwork.name, MAXPATH, "%s/%s", passmywork->name, entry->d_name);
+            struct work * qwork = calloc(sizeof(struct work), 1);
+            SNPRINTF(qwork->name, MAXPATH, "%s/%s", passmywork->name, entry->d_name);
 
-            lstat(qwork.name, &qwork.statuso);
-            if (S_ISDIR(qwork.statuso.st_mode)) {
-                if (!access(qwork.name, R_OK | X_OK)) {
-                    qwork.level = next_level;
-                    qwork.type[0] = 'd';
+            lstat(qwork->name, &qwork->statuso);
+            if (S_ISDIR(qwork->statuso.st_mode)) {
+                if (!access(qwork->name, R_OK | X_OK)) {
+                    qwork->level = next_level;
+                    qwork->type[0] = 'd';
 
                     // this is how the parent gets passed on
-                    qwork.pinode = passmywork->statuso.st_ino;
+                    qwork->pinode = passmywork->statuso.st_ino;
 
                     // this pushes the dir onto queue - pushdir does locking around queue update
                     #ifdef DEBUG
                     struct timespec pushdir_start;
                     clock_gettime(CLOCK_MONOTONIC, &pushdir_start);
                     #endif
-                    pushdir(&qwork);
+                    pushdir2(mytid, qwork);
                     #ifdef DEBUG
                     struct timespec pushdir_end;
                     clock_gettime(CLOCK_MONOTONIC, &pushdir_end);
@@ -206,6 +393,18 @@ static size_t descend2(struct work *passmywork,
             /* } */
         }
     }
+
+    // close dir
+    #ifdef DEBUG
+    struct timespec closedir_start;
+    clock_gettime(CLOCK_MONOTONIC, &closedir_start);
+    #endif
+    closedir(dir);
+    #ifdef DEBUG
+    struct timespec closedir_end;
+    clock_gettime(CLOCK_MONOTONIC, &closedir_end);
+    *closedir_time = elapsed(&closedir_start, &closedir_end);
+    #endif
 
     return pushed;
 }
@@ -361,19 +560,6 @@ static void processdir(void * passv)
         dbtime.modtime = st.st_mtime;
     }
 
-    // open directory
-    #ifdef DEBUG
-    struct timespec opendir_start;
-    clock_gettime(CLOCK_MONOTONIC, &opendir_start);
-    #endif
-    // keep opendir near opendb to help speed up sqlite3_open_v2
-    DIR * dir = opendir(passmywork->name);
-    #ifdef DEBUG
-    struct timespec opendir_end;
-    clock_gettime(CLOCK_MONOTONIC, &opendir_end);
-    opendir_time = elapsed(&opendir_start, &opendir_end);
-    #endif
-
     // if we have out db then we have that db open so we just attach the gufi db
     if (in.outdb > 0) {
       db = gts.outdbd[mytid];
@@ -440,9 +626,12 @@ static void processdir(void * passv)
         clock_gettime(CLOCK_MONOTONIC, &descend_start);
         #endif
         // push subdirectories into the queue
-        descend2(passmywork, dir, in.max_level
+        descend2(mytid,
+                 passmywork, in.max_level
                  #ifdef DEBUG
+                 , &opendir_time
                  , &pushdir_time
+                 , &closedir_time
                  #endif
             );
         #ifdef DEBUG
@@ -539,18 +728,6 @@ static void processdir(void * passv)
   out_dir:
     ;
 
-    // close dir
-    #ifdef DEBUG
-    struct timespec closedir_start;
-    clock_gettime(CLOCK_MONOTONIC, &closedir_start);
-    #endif
-    closedir(dir);
-    #ifdef DEBUG
-    struct timespec closedir_end;
-    clock_gettime(CLOCK_MONOTONIC, &closedir_end);
-    closedir_time = elapsed(&closedir_start, &closedir_end);
-    #endif
-
     // restore mtime and atime
     if (in.keep_matime) {
         utime(name, &dbtime);
@@ -558,7 +735,7 @@ static void processdir(void * passv)
 
   out_free:
     // one less thread running
-    decrthread();
+    decrthread2();
 
 #ifdef DEBUG
     #ifdef THREAD_STATS
@@ -582,30 +759,25 @@ static void processdir(void * passv)
 #endif
 
     // free the queue entry - this has to be here or there will be a leak
-    free(passmywork->freeme);
+    /* free(passmywork->freeme); */
+    free(passmywork);
 
     // return NULL;
 }
 
-int processinit(void * myworkin) {
-     struct work * mywork = myworkin;
-     int i;
-     char outfn[MAXPATH];
-     char outdbn[MAXPATH];
-
+int processinit() {
      //open up the output files if needed
      if (in.outfile > 0) {
-       i=0;
-       while (i < in.maxthreads) {
+       for(int i = 0; i < in.maxthreads; i++) {
+         char outfn[MAXPATH];
          SNPRINTF(outfn,MAXPATH,"%s.%d",in.outfilen,i);
          gts.outfd[i]=fopen(outfn,"w");
-         i++;
        }
      }
 
      if (in.outdb > 0) {
-       i=0;
-       while (i < in.maxthreads) {
+       for (int i = 0; i < in.maxthreads; i++)  {
+         char outdbn[MAXPATH];
          SNPRINTF(outdbn,MAXPATH,"%s.%d",in.outdbn,i);
          gts.outdbd[i]=opendb(outdbn,5,0);
          if (strlen(in.sqlinit) > 1) {
@@ -615,11 +787,12 @@ int processinit(void * myworkin) {
            }
            sqlite3_free(err);
          }
-         i++;
        }
      }
 
      //  ******  create and open output db's here
+
+     struct work * mywork = malloc(sizeof(struct work));
 
      // set the first mywork to be the root node
      mywork->level = 0;
@@ -637,7 +810,7 @@ int processinit(void * myworkin) {
         return 1;
      }
 
-     pushdir(mywork);
+     pushdir2(0, mywork);
      return 0;
 }
 
@@ -726,6 +899,12 @@ int main(int argc, char *argv[])
          }
      }
 
+     queue.mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+     /* queues = calloc(in.maxthreads, sizeof(struct Queue)); */
+     /* for(int i = 0; i < in.maxthreads; i++) { */
+     /*     queues[i].mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER; */
+     /* } */
+
      // start threads and loop watching threads needing work and queue size
      // - this always stays in main right here
      mythpool = thpool_init(in.maxthreads);
@@ -746,8 +925,8 @@ int main(int argc, char *argv[])
 
      int thread_count = 0;
 
-     long double acquire_mutex_time = 0;
-     long double work_time = 0;
+     long double acquire_work_time = 0;
+     long double push_work_time = 0;
 
      for(; idx < argc; idx++) {
          // parse positional args, following the options
@@ -762,14 +941,13 @@ int main(int argc, char *argv[])
          // but not busy yet - this will be different for each instance of a bf
          // program in this case we are stating the directory passed in and
          // putting that directory on the queue
-         struct work mywork;
-         processinit(&mywork);
+         processinit();
 
          // processdirs - if done properly, this routine is common and does not
          // have to be done per instance of a bf program loops through and
          // processes all directories that enter the queue by farming the work
          // out to the threadpool
-         thread_count += processdirs2(processdir, &acquire_mutex_time, &work_time);
+         thread_count += processdirs2(processdir, &acquire_work_time, &push_work_time);
 
          // processfin - this is work done after the threads are done working
          // before they are taken down - this will be different for each
@@ -784,8 +962,8 @@ int main(int argc, char *argv[])
      struct timespec intermediate_end;
      clock_gettime(CLOCK_MONOTONIC, &intermediate_end);
 
-     fprintf(stderr, "Time to acquire queue lock for popping work:    %.2Lf\n", acquire_mutex_time);
-     fprintf(stderr, "Time to do processdir work:                     %.2Lf\n", work_time);
+     fprintf(stderr, "Time to acquire work:                           %.2Lf\n", acquire_work_time);
+     fprintf(stderr, "Time to push work onto thread:                  %.2Lf\n", push_work_time);
 
      if (in.aggregate_or_print == PRINT) {
          const long double main_time = elapsed(&intermediate_start, &intermediate_end);
@@ -883,6 +1061,8 @@ int main(int argc, char *argv[])
 
          closedb(aggregate);
      }
+
+     /* free(queues); */
 
      return 0;
 }

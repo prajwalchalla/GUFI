@@ -281,6 +281,7 @@ struct work {
    char          osstext2[MAXXATTR];
    char          pinodec[128];
    int           suspect;  // added for bfwreaddirplus2db for suspect
+   struct work * next;
 };
 
 extern char xattrdelim[];
