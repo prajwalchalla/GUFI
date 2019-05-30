@@ -402,14 +402,14 @@ TEST(dupdir, parentfirst) {
     char parent[] = "/tmp/parent";
     struct stat orig_parent_stat;
     orig_parent_stat.st_mode = S_IRWXU; // 700
-    orig_parent_stat.st_uid = geteuid();
-    orig_parent_stat.st_gid = getegid();
+    orig_parent_stat.st_uid = getuid();
+    orig_parent_stat.st_gid = getgid();
 
     char child[] = "/tmp/parent/child";
     struct stat orig_child_stat;
     orig_child_stat.st_mode = S_IRWXU | S_IRWXG | S_IRWXO; // 777
-    orig_child_stat.st_uid = geteuid();
-    orig_child_stat.st_gid = getegid();
+    orig_child_stat.st_uid = getuid();
+    orig_child_stat.st_gid = getgid();
 
     // remove leftover directories
     rmdir(child);
@@ -440,14 +440,14 @@ TEST(dupdir, childfirst) {
     char parent[] = "/tmp/parent";
     struct stat orig_parent_stat;
     orig_parent_stat.st_mode = S_IRWXU; // 700
-    orig_parent_stat.st_uid = geteuid();
-    orig_parent_stat.st_gid = getegid();
+    orig_parent_stat.st_uid = getuid();
+    orig_parent_stat.st_gid = getgid();
 
     char child[] = "/tmp/parent/child";
     struct stat orig_child_stat;
     orig_child_stat.st_mode = S_IRWXU | S_IRWXG | S_IRWXO; // 777
-    orig_child_stat.st_uid = geteuid();
-    orig_child_stat.st_gid = getegid();
+    orig_child_stat.st_uid = getuid();
+    orig_child_stat.st_gid = getgid();
 
     // remove leftover directories
     rmdir(child);
@@ -499,14 +499,14 @@ TEST(mkpath, parentfirst) {
     char parent[] = "/tmp/parent";
     struct stat orig_parent_stat;
     orig_parent_stat.st_mode = S_IRWXU; // 700
-    orig_parent_stat.st_uid = geteuid();
-    orig_parent_stat.st_gid = getegid();
+    orig_parent_stat.st_uid = getuid();
+    orig_parent_stat.st_gid = getgid();
 
     char child[] = "/tmp/parent/child";
     struct stat orig_child_stat;
     orig_child_stat.st_mode = S_IRWXU | S_IRWXG | S_IRWXO; // 777
-    orig_child_stat.st_uid = geteuid();
-    orig_child_stat.st_gid = getegid();
+    orig_child_stat.st_uid = getuid();
+    orig_child_stat.st_gid = getgid();
 
     // remove leftover directories
     rmdir(child);
@@ -539,14 +539,14 @@ TEST(mkpath, childfirst) {
     char parent[] = "/tmp/parent";
     struct stat orig_parent_stat;
     orig_parent_stat.st_mode = S_IRWXU; // 700
-    orig_parent_stat.st_uid = geteuid();
-    orig_parent_stat.st_gid = getegid();
+    orig_parent_stat.st_uid = getuid();
+    orig_parent_stat.st_gid = getgid();
 
     char child[] = "/tmp/parent/child";
     struct stat orig_child_stat;
     orig_child_stat.st_mode = S_IRWXU | S_IRWXG | S_IRWXO; // 777
-    orig_child_stat.st_uid = geteuid();
-    orig_child_stat.st_gid = getegid();
+    orig_child_stat.st_uid = getuid();
+    orig_child_stat.st_gid = getgid();
 
     // remove leftover directories
     rmdir(child);
