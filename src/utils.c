@@ -446,7 +446,7 @@ int mkpath(char* path, mode_t mode) {
   for (char* p=strchr(path+1, '/'); p; p=strchr(p+1, '/')) {
     //printf("mkpath mkdir file_path %s p %s\n", file_path,p);
     *p='\0';
-    //printf("mkpath mkdir file_path %s\n", file_path);
+    printf("mkpath %s %d\n", path, mode);
     //if (mkdir(file_path, mode)==-1) {
     if (mkdir(path, mode)==-1) {
       if (errno!=EEXIST) {
